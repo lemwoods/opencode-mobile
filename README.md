@@ -1,18 +1,89 @@
-# OpenCode Mobile
+# OpenCode Mobile — Embedded On-Device Runtime Fork
+
+> **This fork** ([lemwoods/opencode-mobile](https://github.com/lemwoods/opencode-mobile)) adds an
+> **embedded, on-device opencode server**: the app bundles a native Android build of the
+> opencode runtime and runs it directly on your phone — **no laptop, no VPS, no tunnel needed**.
+> Forked from [dzianisv/opencode-mobile](https://github.com/dzianisv/opencode-mobile) (upstream
+> attribution fully preserved below).
 
 **The open-source Android client for the [opencode](https://github.com/sst/opencode) AI coding agent.**
-AI-assisted coding from your phone — Android, via Google Play, F-Droid, or a direct APK.
+AI-assisted coding from your phone — either against your own self-hosted server, or **fully
+on-device** with the embedded runtime.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![F-Droid repo](https://img.shields.io/badge/F--Droid-add_our_repo-1976D2?logo=f-droid)](https://dzianisv.github.io/opencode-mobile/fdroid/repo)
-[![Download APK](https://img.shields.io/badge/Download-APK-green?logo=android)](https://github.com/dzianisv/opencode-mobile/releases/latest)
-[![Google Play](https://img.shields.io/badge/Google_Play-Available-4CAF50?logo=google-play)](https://play.google.com/store/apps/details?id=cc.agentlabs.opencode)
+[![Embedded runtime](https://img.shields.io/badge/on--device_runtime-opencode_1.18.30-6366f1)](docs/EMBEDDED-RUNTIME.md)
+[![Upstream](https://img.shields.io/badge/fork_of-dzianisv%2Fopencode--mobile-8b8b8b)](https://github.com/dzianisv/opencode-mobile)
 
 > **Not affiliated with opencode.** OpenCode Mobile is an independent, community-built client and is
 > not made by, endorsed by, or affiliated with the opencode / Anomaly team. It talks to an opencode
-> server you run yourself, using opencode's open HTTP API.
+> server you run yourself (or, in this fork, one that runs inside the app), using opencode's open HTTP API.
 
 ---
+
+## 📱 What this fork adds: on-device opencode (中文说明)
+
+本 fork 在原版基础上**内置了可在手机上原生运行的 opencode 服务器**：
+
+- 集成社区 [opencode-termux](https://github.com/Hope2333/opencode-termux) 的 **native 主线单文件
+  Bionic ELF**（零 glibc 依赖，Android API ≥ 28），以 `libopencode.so` 形式打入 `jniLibs`
+- Connections 页出现**本机运行时**状态卡片 → 进入运行时页面 → **启动服务** → `opencode serve`
+  在 `127.0.0.1:4096` 监听 → **Connect**，即可以手机为算力跑 agent
+- 前台服务保活（锁屏不中断）、实时服务日志、启动/停止/一键连接
+- 技术约束与设计细节见 [docs/EMBEDDED-RUNTIME.md](docs/EMBEDDED-RUNTIME.md)（为什么必须走
+  jniLibs/nativeLibraryDir、为什么不用 Termux 前缀、内存与 LMK 策略等）
+
+**已知限制**：arm64-v8a 设备；运行时进程约 1-2GB 内存占用（180MB 二进制的固有代价，已做
+OOM 保护优先保 app）；冷启动有 1-2 秒 CPU 峰值；本 fork 的 APK 为自签证书（直装可用）。
+
+---
+
+## How the embedded runtime works
+
+```
+┌─────────────────────────────────────────────┐
+│            OpenCode Mobile (this fork)      │
+│   React Native UI  ←── HTTP + SSE ──┐       │
+│                                     │       │
+│  ┌──────────────────────────────────▼────┐  │
+│  │ OpencodeRuntimeService (FGS, Kotlin)  │  │
+│  │  exec libopencode.so serve            │  │
+│  │  HOME=app-files  LD_LIBRARY_PATH=…    │  │
+│  │  oom_score_adj=400  log ring buffer   │  │
+│  └───────────────────────────────────────┘  │
+└─────────────────────────┬───────────────────┘
+                          │ 127.0.0.1:4096 only
+                          ▼
+             embedded opencode (single bionic ELF,
+             github.com/Hope2333/opencode-termux)
+                          │
+                          ▼
+                Your AI provider (your keys)
+```
+
+All model calls go directly from the on-device (or remote) server to your provider; the app never
+proxies code or conversations through third-party servers.
+
+### Build the embedded runtime from source
+
+```bash
+git clone https://github.com/lemwoods/opencode-mobile.git
+cd opencode-mobile
+
+# 1. fetch the pinned native runtime (~180MB, SHA-256 verified)
+scripts/fetch-opencode-native.sh        # v1.18.30 pinned; pass a tag to override
+
+# 2. install JS deps + build the APK (needs JDK 17 + Android SDK 35/36)
+npm ci
+cd android && JAVA_HOME=$JDK17 ./gradlew assembleRelease --no-daemon
+# → app/build/outputs/apk/release/app-release.apk (~101MB)
+```
+
+`expo.useLegacyPackaging=true` (already set) is required — the ELF must land in the extracted
+`nativeLibraryDir` to be executable under the targetSdk 29+ data-dir exec ban. Full background:
+**[docs/EMBEDDED-RUNTIME.md](docs/EMBEDDED-RUNTIME.md)**.
+
+---
+
 
 **New: tap "Try a Demo" in the app to see the agent fix a real bug — reasoning, a grep, a diff, a permission prompt — in about 30 seconds, no server needed.**
 
@@ -20,20 +91,21 @@ AI-assisted coding from your phone — Android, via Google Play, F-Droid, or a d
 
 ## Install (Android)
 
-There are **three working ways** to install OpenCode Mobile today, all for Android:
+> **This fork** does not ship through the upstream channels below (they belong to the original
+> project). Install it by **building from source** — see
+> [Build the embedded runtime from source](#build-the-embedded-runtime-from-source).
+> The upstream build (without the embedded runtime) is still available as:
 
-1. **Google Play** — **https://play.google.com/store/apps/details?id=cc.agentlabs.opencode**
+1. **Google Play (upstream)** — **https://play.google.com/store/apps/details?id=cc.agentlabs.opencode**
 
-2. **F-Droid (self-hosted repo)** — add our self-hosted repo to any F-Droid client, then install/update from there:
+2. **F-Droid, self-hosted repo (upstream)** — add the upstream repo to any F-Droid client:
    ```
    https://dzianisv.github.io/opencode-mobile/fdroid/repo
    ```
-   In the F-Droid app: **Settings → Repositories → + (add)** and paste the URL above. Current version: **v0.4.7**.
 
-3. **Direct signed APK** — download the latest release and install it manually:
-   **https://github.com/dzianisv/opencode-mobile/releases/latest**
+3. **Direct signed APK (upstream)** — **https://github.com/dzianisv/opencode-mobile/releases/latest**
 
-> iOS is not available (see [Roadmap](#roadmap)). IzzyOnDroid submission is pending.
+> iOS is not available (see [Roadmap](#roadmap)). IzzyOnDroid submission is pending (upstream).
 
 ---
 
@@ -51,6 +123,7 @@ OpenCode Mobile is a React Native / Expo app that brings the power of the [openc
 
 ## Features
 
+- **🆕 Embedded on-device runtime (this fork)** — start a real opencode server inside the app with one tap; no external machine required ([docs](docs/EMBEDDED-RUNTIME.md))
 - **Offline demo mode** — tap "Try a Demo" to see a full bug-fix walkthrough (reasoning → grep → diff → permission prompt) with zero setup, right from the empty state
 - **Multi-connection** — manage multiple opencode servers (local network, Cloudflare Tunnel, ngrok, or Tailscale)
 - **Biometric unlock** — Face ID, Touch ID, or Android fingerprint protects the app and individual message sends
@@ -141,6 +214,7 @@ OpenCode Mobile is a thin client. It speaks the opencode HTTP + SSE API: listing
 
 | Feature | Status |
 |---|---|
+| **Embedded on-device runtime (this fork)** | Experimental — boots, serves, and connects on arm64 devices; cold-start cost & ~1-2GB RSS inherent |
 | Offline demo mode | Stable |
 | First-run onboarding clarity | Stable |
 | Multi-connection management | Stable |
@@ -212,6 +286,8 @@ Copyright (c) 2026 VIBE TECHNOLOGIES, LLC
 
 ## Acknowledgments
 
+- **[dzianisv/opencode-mobile](https://github.com/dzianisv/opencode-mobile)** — the upstream this fork builds on (MIT); all credit for the app's client foundation goes to VIBE TECHNOLOGIES, LLC and its contributors
+- **[Hope2333/opencode-termux](https://github.com/Hope2333/opencode-termux)** — the native single-ELF bionic build of opencode that makes the embedded runtime possible (MIT)
 - [sst/opencode](https://github.com/sst/opencode) — the AI coding agent this app connects to (MIT)
 - [Expo](https://expo.dev) — the React Native toolchain powering the app
 - Every contributor who filed a bug, opened a PR, or starred the repo
