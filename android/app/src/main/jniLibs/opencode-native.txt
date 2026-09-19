@@ -1,0 +1,9 @@
+source: github.com/Hope2333/opencode-termux release Push260912
+version: 1.18.30
+artifact: opencode_1.18.30_aarch64.deb
+files:
+  arm64-v8a/libopencode.so            (upstream usr/bin/opencode, bionic ELF, Android API>=28)
+  arm64-v8a/libopencode-crhandler.so  (upstream usr/lib/opencode/libopencode-crhandler.so, seccomp shim)
+installed-by: scripts/fetch-opencode-native.sh
+date: 2026-09-19
+license: MIT (project) — see docs/EMBEDDED-RUNTIME.md

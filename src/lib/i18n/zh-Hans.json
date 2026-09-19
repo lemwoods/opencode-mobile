@@ -223,7 +223,8 @@
     "connectionsTab": "连接",
     "settingsTab": "设置",
     "addConnectionTitle": "添加连接",
-    "editConnectionTitle": "编辑连接"
+    "editConnectionTitle": "编辑连接",
+    "runtimeTitle": "本机运行时"
   },
   "connectionsList": {
     "activeBadge": "当前使用",
@@ -451,5 +452,27 @@
     "action": "去获取",
     "dismiss": "暂不",
     "upToDate": "已是最新"
+  },
+  "runtime": {
+    "cardTitle": "本机运行时",
+    "state": {
+      "IDLE": "空闲",
+      "STARTING": "启动中…",
+      "RUNNING": "运行中",
+      "STOPPED": "已停止",
+      "ERROR": "错误",
+      "UNAVAILABLE": "未打包"
+    },
+    "status": "状态",
+    "version": "版本",
+    "port": "端口",
+    "start": "启动服务",
+    "stop": "停止服务",
+    "connect": "连接",
+    "logs": "服务日志",
+    "logsEmpty": "暂无日志输出。",
+    "unavailableTitle": "未打包本机运行时",
+    "unavailableBody": "当前构建未包含本机 opencode 二进制。请先运行 scripts/fetch-opencode-native.sh 再构建 Android 应用，或连接远程服务器。",
+    "errorPrefix": "运行时错误"
   }
 }

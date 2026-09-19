@@ -207,6 +207,13 @@ function RootLayout() {
                   presentation: "modal",
                 }}
               />
+              <Stack.Screen
+                name="runtime"
+                options={{
+                  title: t("nav.runtimeTitle"),
+                  presentation: "card",
+                }}
+              />
             </Stack>
               <StatusBar style={isDark ? "light" : "dark"} />
             </AuthGate>

@@ -28,3 +28,7 @@ android/app/src/main/assets/index.android.bundle
 artifacts/screenshots/
 positive-S*.png
 negative-S*.png
+
+# Embedded on-device runtime binaries — fetched reproducibly via
+# scripts/fetch-opencode-native.sh (180MB bionic ELF); keep provenance txt only.
+android/app/src/main/jniLibs/arm64-v8a/

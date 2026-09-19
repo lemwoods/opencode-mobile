@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.RECORD_AUDIO"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
@@ -30,5 +33,10 @@
         <data android:scheme="opencode"/>
       </intent-filter>
     </activity>
+    <!-- Embedded on-device opencode runtime: single bionic ELF from jniLibs. -->
+    <service
+      android:name=".runtime.OpencodeRuntimeService"
+      android:exported="false"
+      android:foregroundServiceType="dataSync"/>
   </application>
 </manifest>

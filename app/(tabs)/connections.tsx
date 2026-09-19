@@ -1,12 +1,51 @@
+import { useEffect } from "react"
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, useColorScheme, Alert } from "react-native"
 import { router } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { useConnections } from "../../src/stores/connections"
 import { useSettings } from "../../src/stores/settings"
+import { useRuntime } from "../../src/stores/runtime"
 import type { ServerConnection } from "../../src/lib/types"
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const
+
+/** Compact embedded-runtime entry point shown at the top of the list. */
+function RuntimeStatusCard({ isDark }: { isDark: boolean }) {
+  const { t } = useTranslation()
+  const runtime = useRuntime()
+
+  useEffect(() => {
+    void runtime.refresh()
+    runtime.attach()
+  }, [runtime])
+
+  if (runtime.state === "UNAVAILABLE") return null
+
+  const dotColor =
+    runtime.state === "RUNNING"
+      ? "#22c55e"
+      : runtime.state === "STARTING"
+        ? "#f59e0b"
+        : runtime.state === "ERROR"
+          ? "#ef4444"
+          : isDark
+            ? "#5a5a5a"
+            : "#a3a3a3"
+
+  return (
+    <TouchableOpacity
+      style={[styles.runtimeCard, isDark && styles.runtimeCardDark]}
+      onPress={() => router.push("/runtime")}
+    >
+      <View style={styles.runtimeCardLeft}>
+        <View style={[styles.runtimeDot, { backgroundColor: dotColor }]} />
+        <Text style={[styles.runtimeCardTitle, isDark && styles.textDark]}>{t("runtime.cardTitle")}</Text>
+      </View>
+      <Text style={[styles.runtimeCardState, isDark && styles.metaDark]}>{t(`runtime.state.${runtime.state}`)}</Text>
+    </TouchableOpacity>
+  )
+}
 
 function ConnectionItem({
   connection,
@@ -137,6 +176,7 @@ export default function ConnectionsScreen() {
         ListHeaderComponent={
           <View style={[styles.header, isDark && styles.headerDark]}>
             <Text style={[styles.headerText, isDark && styles.metaDark]}>{t("connectionsList.header")}</Text>
+            <RuntimeStatusCard isDark={isDark} />
           </View>
         }
         ListFooterComponent={
@@ -207,6 +247,40 @@ const styles = StyleSheet.create({
   },
   headerDark: {
     borderBottomColor: "#1a1a1a",
+  },
+  runtimeCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    backgroundColor: "#f9f9f9",
+  },
+  runtimeCardDark: {
+    borderColor: "#262626",
+    backgroundColor: "#141414",
+  },
+  runtimeCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  runtimeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  runtimeCardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#0a0a0a",
+  },
+  runtimeCardState: {
+    fontSize: 12,
+    color: "#666666",
   },
   headerText: {
     fontSize: 13,
