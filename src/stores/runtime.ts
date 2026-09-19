@@ -44,10 +44,15 @@ export const useRuntime = create<RuntimeStore>((set, get) => ({
     listenersAttached = true
 
     onRuntimeState((state) => {
-      set({ state: state as RuntimeState })
+      // String coercion is the last line of defense: an object payload here
+      // would poison every state comparison downstream (v1 crash).
+      set({ state: (typeof state === "string" ? state : String(state)) as RuntimeState })
     })
     onRuntimeLog((line) => {
-      const logs = [...get().logs, line]
+      // Only strings may enter the log ring — objects crashed React (v2).
+      const text = typeof line === "string" ? line : String(line)
+      if (!text) return
+      const logs = [...get().logs, text]
       set({ logs: logs.length > MAX_LOG_LINES ? logs.slice(logs.length - MAX_LOG_LINES) : logs })
     })
 
@@ -68,7 +73,7 @@ export const useRuntime = create<RuntimeStore>((set, get) => ({
       const v = await getVersion()
       if (v) set({ version: v })
     }
-    const recent = await getRecentLogs()
+    const recent = (await getRecentLogs()).filter((l): l is string => typeof l === "string")
     if (recent.length > 0) set({ logs: recent })
   },
 

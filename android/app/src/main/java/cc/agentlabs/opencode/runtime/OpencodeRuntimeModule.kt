@@ -94,17 +94,18 @@ class OpencodeRuntimeModule(private val reactContext: ReactApplicationContext) :
   }
 
   private fun emitState(state: String) {
-    val params = Arguments.createMap().apply { putString("state", state) }
+    // Emit a bare string: the JS side's DeviceEventEmitter listener passes
+    // params straight through, and wrapping in a WritableMap ({state: ...})
+    // would leak the map object into store state (v1/v2 crash root cause).
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      ?.emit(EVENT_STATE, params)
+      ?.emit(EVENT_STATE, state)
   }
 
   private fun emitLog(line: String) {
-    val params = Arguments.createMap().apply { putString("line", line) }
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      ?.emit(EVENT_LOG, params)
+      ?.emit(EVENT_LOG, line)
   }
 
   override fun invalidate() {

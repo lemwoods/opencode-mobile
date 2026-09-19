@@ -79,12 +79,31 @@ export async function getRecentLogs(): Promise<string[]> {
 export const RUNTIME_LOG_EVENT = "OpencodeRuntimeLog"
 export const RUNTIME_STATE_EVENT = "OpencodeRuntimeState"
 
+/**
+ * Native event payloads can arrive as bare strings (canonical, matching the
+ * Kotlin emit calls) or — after a shape mismatch — as {key: string} maps.
+ * Normalize both so a payload-shape bug can never leak an object into store
+ * state (root cause of the v1/v2 renders crashing).
+ */
+function unwrapString(payload: unknown, key: string): string {
+  if (typeof payload === "string") return payload
+  if (payload && typeof payload === "object") {
+    const boxed = (payload as Record<string, unknown>)[key]
+    if (typeof boxed === "string") return boxed
+  }
+  return ""
+}
+
 export function onRuntimeLog(listener: (line: string) => void): EmitterSubscription {
-  return DeviceEventEmitter.addListener(RUNTIME_LOG_EVENT, listener)
+  return DeviceEventEmitter.addListener(RUNTIME_LOG_EVENT, (payload: unknown) => {
+    listener(unwrapString(payload, "line"))
+  })
 }
 
 export function onRuntimeState(listener: (state: string) => void): EmitterSubscription {
-  return DeviceEventEmitter.addListener(RUNTIME_STATE_EVENT, listener)
+  return DeviceEventEmitter.addListener(RUNTIME_STATE_EVENT, (payload: unknown) => {
+    listener(unwrapString(payload, "state"))
+  })
 }
 
 /**
