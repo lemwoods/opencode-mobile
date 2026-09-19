@@ -118,7 +118,7 @@ class OpencodeRuntimeService : Service() {
     val requestedPort = intent?.getIntExtra(EXTRA_PORT, 4096) ?: 4096
     if (process?.isAlive == true) {
       // Already running: keep the current process (port unchanged).
-      return START_STICKY
+      return START_NOT_STICKY
     }
     createChannel()
     startAsForeground()
@@ -144,6 +144,24 @@ class OpencodeRuntimeService : Service() {
           listOf(bin.absolutePath, "serve", "--hostname", "127.0.0.1", "--port", port.toString()),
         )
         process = proc
+        // Under memory pressure, make the (heavy) server the preferred LMK
+        // victim instead of letting the kernel thrash the app/system: raising
+        // oom_score_adj on our own child needs no special privileges.
+        // Best-effort: java.lang.Process has no pid() on Android, so reach
+        // into android.os.ProcessManager$ProcessImpl.getPid() via reflection.
+        try {
+          val pid = try {
+            proc.javaClass.getMethod("getPid").invoke(proc) as Int
+          } catch (_: Throwable) {
+            -1
+          }
+          if (pid > 0) {
+            File("/proc/$pid/oom_score_adj").writeText("400")
+            log("oom_score_adj set to 400 for pid $pid")
+          }
+        } catch (e: Throwable) {
+          log("could not set oom_score_adj: ${e.message}")
+        }
 
         // Pump stdout+stderr (merged) into the ring buffer and broadcasts.
         Thread({
@@ -178,7 +196,7 @@ class OpencodeRuntimeService : Service() {
       }
     }, "opencode-spawn").start()
 
-    return START_STICKY
+    return START_NOT_STICKY
   }
 
   override fun onDestroy() {

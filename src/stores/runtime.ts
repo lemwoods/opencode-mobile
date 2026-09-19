@@ -1,7 +1,6 @@
 import { create } from "zustand"
 import {
   getStatus,
-  getVersion,
   startServer,
   stopServer,
   getRecentLogs,
@@ -95,10 +94,9 @@ export const useRuntime = create<RuntimeStore>((set, get) => ({
       return
     }
     set({ state: status.state, port: status.port })
-    if (status.state === "RUNNING" && get().version === null) {
-      const v = await getVersion()
-      if (v) set({ version: v })
-    }
+    // Deliberately NOT probing `opencode --version` while the server runs:
+    // that spawns a SECOND full Bun runtime (~1GB RSS) next to the server
+    // and reliably tips the device into LMK kills (exit 137) + app freezes.
     const recent = (await getRecentLogs()).filter((l): l is string => typeof l === "string")
     if (recent.length > 0) set({ logs: recent })
   },
