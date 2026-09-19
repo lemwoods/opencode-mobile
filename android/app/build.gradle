@@ -89,6 +89,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
+    // The embedded-runtime CI box has 4GB RAM; lintVital analysis across all
+    // expo modules peaks past the container limit and OOM-kills the Gradle
+    // daemon late in the build. The APK itself does not need it.
+    lint {
+        checkReleaseBuilds false
+    }
+
     namespace 'cc.agentlabs.opencode'
     defaultConfig {
         applicationId 'cc.agentlabs.opencode'

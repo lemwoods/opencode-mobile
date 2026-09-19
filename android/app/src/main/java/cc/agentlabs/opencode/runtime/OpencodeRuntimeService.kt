@@ -140,38 +140,38 @@ class OpencodeRuntimeService : Service() {
         listOf(bin.absolutePath, "serve", "--hostname", "127.0.0.1", "--port", port.toString()),
       )
       process = proc
+
+      // Pump stdout+stderr (merged) into the ring buffer and broadcasts.
+      Thread({
+        for (line in proc.inputStream.bufferedReader().lines()) {
+          pushLog(line)
+          broadcastLog(line)
+        }
+      }, "opencode-stdout").start()
+
+      // Watch for process exit; publish the terminal state.
+      Thread({
+        val exit = proc.waitFor()
+        log("opencode serve exited with code $exit")
+        transition(if (exit == 0) State.STOPPED else State.ERROR)
+        stopSelf()
+      }, "opencode-exit-watch").start()
+
+      // Mark RUNNING once the process survived its first moment; the JS layer
+      // additionally probes /health before flipping its own UI to "connected".
+      Thread({
+        try {
+          Thread.sleep(1500)
+          if (proc.isAlive) transition(State.RUNNING)
+        } catch (_: InterruptedException) {
+        }
+      }, "opencode-run-marker").start()
     } catch (e: Exception) {
       log("failed to spawn: ${e.message}")
       transition(State.ERROR)
       stopSelf()
       return START_NOT_STICKY
     }
-
-    // Pump stdout+stderr (merged) into the ring buffer and broadcasts.
-    Thread({
-      for (line in proc.inputStream.bufferedReader().lines()) {
-        pushLog(line)
-        broadcastLog(line)
-      }
-    }, "opencode-stdout").start()
-
-    // Watch for process exit; publish the terminal state.
-    Thread({
-      val exit = proc.waitFor()
-      log("opencode serve exited with code $exit")
-      transition(if (exit == 0) State.STOPPED else State.ERROR)
-      stopSelf()
-    }, "opencode-exit-watch").start()
-
-    // Mark RUNNING once the process survived its first moment; the JS layer
-    // additionally probes /health before flipping its own UI to "connected".
-    Thread({
-      try {
-        Thread.sleep(1500)
-        if (proc.isAlive) transition(State.RUNNING)
-      } catch (_: InterruptedException) {
-      }
-    }, "opencode-run-marker").start()
 
     return START_STICKY
   }
