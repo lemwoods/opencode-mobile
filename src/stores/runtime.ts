@@ -12,6 +12,8 @@ import {
 import { addBreadcrumb } from "../lib/sentry"
 
 const MAX_LOG_LINES = 400
+/** Coalesce window for batched log ingestion (see attach()). */
+const LOG_FLUSH_MS = 300
 
 export interface RuntimeStore {
   // Mirror of the native service state; "UNAVAILABLE" means the build
@@ -48,12 +50,36 @@ export const useRuntime = create<RuntimeStore>((set, get) => ({
       // would poison every state comparison downstream (v1 crash).
       set({ state: (typeof state === "string" ? state : String(state)) as RuntimeState })
     })
+
+    // Log batching: the server can emit hundreds of lines during cold Bun
+    // startup; pushing each one through set() re-renders the screen per line
+    // and pegs the JS thread (reported as near-freeze on-device). Buffer and
+    // flush coalesced at most every LOG_FLUSH_MS instead.
+    let pending: string[] = []
+    let flushTimer: ReturnType<typeof setTimeout> | null = null
+    const flush = () => {
+      flushTimer = null
+      if (pending.length === 0) return
+      const batch = pending
+      pending = []
+      const merged = [...get().logs, ...batch]
+      set({
+        logs: merged.length > MAX_LOG_LINES ? merged.slice(merged.length - MAX_LOG_LINES) : merged,
+      })
+    }
     onRuntimeLog((line) => {
       // Only strings may enter the log ring — objects crashed React (v2).
       const text = typeof line === "string" ? line : String(line)
       if (!text) return
-      const logs = [...get().logs, text]
-      set({ logs: logs.length > MAX_LOG_LINES ? logs.slice(logs.length - MAX_LOG_LINES) : logs })
+      pending.push(text)
+      if (pending.length >= 100) {
+        if (flushTimer) clearTimeout(flushTimer)
+        flush()
+        return
+      }
+      if (flushTimer == null) {
+        flushTimer = setTimeout(flush, LOG_FLUSH_MS)
+      }
     })
 
     // Initial sync so a freshly opened app reflects a server that is
