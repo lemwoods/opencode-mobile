@@ -86,3 +86,22 @@ export function onRuntimeLog(listener: (line: string) => void): EmitterSubscript
 export function onRuntimeState(listener: (state: string) => void): EmitterSubscription {
   return DeviceEventEmitter.addListener(RUNTIME_STATE_EVENT, listener)
 }
+
+/**
+ * Static i18n key for a runtime state. Uses a fixed map instead of dynamic
+ * key composition (`t(`runtime.state.${state.toLowerCase()}`)`) so every key
+ * is statically analyzable, i18next-catalog-verifiable, and immune to
+ * undefined-state edge cases at render time.
+ */
+const STATE_LABEL_KEYS: Record<string, string> = {
+  IDLE: "runtime.state.idle",
+  STARTING: "runtime.state.starting",
+  RUNNING: "runtime.state.running",
+  STOPPED: "runtime.state.stopped",
+  ERROR: "runtime.state.error",
+  UNAVAILABLE: "runtime.state.unavailable",
+}
+
+export function runtimeStateLabelKey(state: string | undefined | null): string {
+  return STATE_LABEL_KEYS[state ?? "UNAVAILABLE"] ?? STATE_LABEL_KEYS.UNAVAILABLE
+}

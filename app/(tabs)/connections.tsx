@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { useConnections } from "../../src/stores/connections"
 import { useSettings } from "../../src/stores/settings"
 import { useRuntime } from "../../src/stores/runtime"
+import { runtimeStateLabelKey } from "../../src/lib/native-runtime"
 import type { ServerConnection } from "../../src/lib/types"
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const
@@ -42,7 +43,7 @@ function RuntimeStatusCard({ isDark }: { isDark: boolean }) {
         <View style={[styles.runtimeDot, { backgroundColor: dotColor }]} />
         <Text style={[styles.runtimeCardTitle, isDark && styles.textDark]}>{t("runtime.cardTitle")}</Text>
       </View>
-      <Text style={[styles.runtimeCardState, isDark && styles.metaDark]}>{t(`runtime.state.${runtime.state}`)}</Text>
+      <Text style={[styles.runtimeCardState, isDark && styles.metaDark]}>{t(runtimeStateLabelKey(runtime.state))}</Text>
     </TouchableOpacity>
   )
 }

@@ -456,12 +456,12 @@
   "runtime": {
     "cardTitle": "On-device runtime",
     "state": {
-      "IDLE": "Idle",
-      "STARTING": "Starting…",
-      "RUNNING": "Running",
-      "STOPPED": "Stopped",
-      "ERROR": "Error",
-      "UNAVAILABLE": "Not bundled"
+      "idle": "Idle",
+      "starting": "Starting…",
+      "running": "Running",
+      "stopped": "Stopped",
+      "error": "Error",
+      "unavailable": "Not bundled"
     },
     "status": "Status",
     "version": "Version",
@@ -471,8 +471,11 @@
     "connect": "Connect",
     "logs": "Server logs",
     "logsEmpty": "No log output yet.",
-    "unavailableTitle": "Embedded runtime not bundled",
-    "unavailableBody": "This build does not include the on-device opencode binary. Run scripts/fetch-opencode-native.sh before building the Android app, or connect to a remote server instead.",
-    "errorPrefix": "Runtime error"
+    "errorPrefix": "Runtime error",
+    "connectionName": "On-device (Android)",
+    "unavailable": {
+      "title": "Embedded runtime not bundled",
+      "body": "This build does not include the on-device opencode binary. Run scripts/fetch-opencode-native.sh before building the Android app, or connect to a remote server instead."
+    }
   }
 }

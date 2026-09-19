@@ -12,6 +12,7 @@ import { router } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 import { useTranslation } from "react-i18next"
 import { useRuntime } from "../src/stores/runtime"
+import { runtimeStateLabelKey } from "../src/lib/native-runtime"
 import { useConnections } from "../src/stores/connections"
 
 const ON_DEVICE_PORT = 4096
@@ -105,7 +106,7 @@ export default function RuntimeScreen() {
           <View style={styles.statusRow}>
             <View style={[styles.statusDot, { backgroundColor: stateColor(runtime.state, isDark) }]} />
             <Text style={[styles.statusText, { color: colors.text }]}>
-              {t(`runtime.state.${runtime.state.toLowerCase()}`)}
+              {t(runtimeStateLabelKey(runtime.state))}
             </Text>
           </View>
           {runtime.version ? (
