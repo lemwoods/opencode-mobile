@@ -68,10 +68,20 @@ class OpencodeRuntimeModule(private val reactContext: ReactApplicationContext) :
 
   private val logReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
-      val line = intent?.getStringExtra(OpencodeRuntimeService.EXTRA_LOG_LINE) ?: return
-      emitLog(line)
+      // Batched payload (v6): one broadcast per 300ms window carrying all
+      // lines; legacy single-line extra kept as fallback.
+      val lines = intent?.getStringArrayListExtra(OpencodeRuntimeService.EXTRA_LOG_LINES)
+        ?: intent?.getStringExtra(OpencodeRuntimeService.EXTRA_LOG_LINE)?.let { listOf(it) }
+        ?: return
+      if (lines.isEmpty()) return
+      // Bridge work off the main thread: onReceive runs on the UI looper.
+      eventsHandler.post { emitLogs(lines) }
     }
   }
+
+  /** Background thread for bridge emits; never the UI thread. */
+  private val eventsThread = android.os.HandlerThread("opencode-module-events").apply { start() }
+  private val eventsHandler = android.os.Handler(eventsThread.looper)
 
   private var receiversRegistered = false
 
@@ -102,10 +112,12 @@ class OpencodeRuntimeModule(private val reactContext: ReactApplicationContext) :
       ?.emit(EVENT_STATE, state)
   }
 
-  private fun emitLog(line: String) {
+  /** One bridge event carrying all lines of the batch (JS spreads them). */
+  private fun emitLogs(lines: List<String>) {
+    val array = Arguments.createArray().apply { lines.forEach { pushString(it) } }
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      ?.emit(EVENT_LOG, line)
+      ?.emit(EVENT_LOG, array)
   }
 
   override fun invalidate() {
@@ -114,6 +126,7 @@ class OpencodeRuntimeModule(private val reactContext: ReactApplicationContext) :
       reactContext.unregisterReceiver(logReceiver)
       receiversRegistered = false
     }
+    eventsThread.quitSafely()
     super.invalidate()
   }
 
